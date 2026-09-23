@@ -6,6 +6,6 @@ figma.ui.onmessage = async ({ id, code }) => {
     const value = await new AsyncFunction('figma', code)(figma);
     figma.ui.postMessage({ id, ok: true, value });
   } catch (e) {
-    figma.ui.postMessage({ id, ok: false, error: String(e && e.stack || e) });
+    figma.ui.postMessage({ id, ok: false, error: String(e && e.message ? e.message + '\n' + e.stack : e) });
   }
 };
