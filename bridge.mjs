@@ -21,10 +21,13 @@ if (cmd === 'serve') {
   http.createServer(async (req, res) => {
     if (req.url === '/ping') { res.writeHead(204, cors); return res.end(); }
     if (req.url === '/next') {
-      const send = job => { res.writeHead(200, { ...cors, 'Content-Type': 'application/json' }); res.end(JSON.stringify(job)); };
-      if (jobs.length) return send(jobs.shift());
+      // 끊긴 연결에는 보내지 않는다(false) — 잡은 다음 대기자에게 넘어간다.
+      const send = job => { if (res.destroyed) return false; res.writeHead(200, { ...cors, 'Content-Type': 'application/json' }); res.end(JSON.stringify(job)); return true; };
+      if (jobs.length) return send(jobs[0]) && jobs.shift();
       const w = { send }; waiters.push(w);
-      setTimeout(() => { const i = waiters.indexOf(w); if (i >= 0) { waiters.splice(i, 1); res.writeHead(204, cors); res.end(); } }, 25000);
+      const drop = () => { const i = waiters.indexOf(w); if (i >= 0) waiters.splice(i, 1); };
+      res.on('close', drop);
+      setTimeout(() => { if (waiters.includes(w)) { drop(); res.writeHead(204, cors); res.end(); } }, 25000);
       return;
     }
     if (req.url === '/result' && req.method === 'POST') {
@@ -35,7 +38,8 @@ if (cmd === 'serve') {
       if (req.headers['x-bridge-token'] !== token) { res.writeHead(403); return res.end(); }
       const job = { id: crypto.randomUUID(), code: await body(req) };
       pending.set(job.id, r => { res.writeHead(200, { 'Content-Type': 'application/json' }); res.end(JSON.stringify(r)); });
-      const w = waiters.shift(); w ? w.send(job) : jobs.push(job);
+      let w; while ((w = waiters.shift()) && !w.send(job));
+      if (!w) jobs.push(job);
       return;
     }
     res.writeHead(404); res.end();

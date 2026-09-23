@@ -33,3 +33,23 @@ test('job round-trip, png decode, token required', async t => {
   assert.equal(r.value.frame, '<png frame.png>');
   assert.equal(fs.readFileSync(path.join(dir, 'frame.png'), 'utf8'), 'PNG');
 });
+
+test('a poller that disconnected does not swallow the job', async t => {
+  const env2 = { ...env, FIGMA_BRIDGE_PORT: '3997' };
+  const u = 'http://127.0.0.1:3997';
+  const server = spawn('node', ['bridge.mjs', 'serve'], { env: env2 });
+  t.after(() => server.kill());
+  await new Promise(r => server.stdout.once('data', r));
+  const ac = new AbortController();
+  fetch(u + '/next', { signal: ac.signal }).catch(() => {});
+  await new Promise(r => setTimeout(r, 100));
+  ac.abort();
+  await new Promise(r => setTimeout(r, 100));
+  const script = path.join(dir, 's2.js');
+  fs.writeFileSync(script, 'return 2');
+  const run = new Promise(r => execFile('node', ['bridge.mjs', 'run', script, dir], { env: env2 }, (e, out) => r(out)));
+  const job = await (await fetch(u + '/next')).json();
+  assert.equal(job.code, 'return 2');
+  await fetch(u + '/result', { method: 'POST', body: JSON.stringify({ id: job.id, ok: true, value: 2 }) });
+  assert.equal(JSON.parse(await run).value, 2);
+});
