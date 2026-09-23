@@ -1,0 +1,14 @@
+{
+  "name": "Figma Script Bridge",
+  "id": "figma-script-bridge-dev",
+  "api": "1.0.0",
+  "main": "code.js",
+  "ui": "ui.html",
+  "editorType": ["figma"],
+  "documentAccess": "dynamic-page",
+  "networkAccess": {
+    "allowedDomains": ["none"],
+    "devAllowedDomains": ["http://localhost:3899"],
+    "reasoning": "로컬 브리지 서버(127.0.0.1:3899)에서만 스크립트를 받는다"
+  }
+}

@@ -1,0 +1,24 @@
+<body style="font:12px system-ui;margin:8px">
+<div id="s">연결 대기…</div>
+<script>
+const S = 'http://localhost:3899', s = document.getElementById('s');
+let n = 0;
+// 결과 안의 Uint8Array(exportAsync PNG)는 base64로 바꿔 보낸다.
+const enc = v => v instanceof Uint8Array ? { __png: btoa(Array.from(v, c => String.fromCharCode(c)).join('')) }
+  : Array.isArray(v) ? v.map(enc) : v && typeof v === 'object' ? Object.fromEntries(Object.entries(v).map(([k, x]) => [k, enc(x)])) : v;
+onmessage = async e => {
+  const r = e.data.pluginMessage; if (!r) return;
+  await fetch(S + '/result', { method: 'POST', body: JSON.stringify({ ...r, value: enc(r.value) }) });
+  s.textContent = `실행 ${++n}건 · 대기 중`;
+};
+(async function poll() {
+  for (;;) {
+    try {
+      const res = await fetch(S + '/next');
+      s.textContent = n ? `실행 ${n}건 · 대기 중` : '연결됨 · 대기 중';
+      if (res.status === 200) parent.postMessage({ pluginMessage: await res.json() }, '*');
+    } catch { s.textContent = '서버 없음 · 재시도'; await new Promise(r => setTimeout(r, 2000)); }
+  }
+})();
+</script>
+</body>
