@@ -15,6 +15,7 @@ test('job round-trip, png decode, token required', async t => {
   t.after(() => server.kill());
   await new Promise(r => server.stdout.once('data', r));
 
+  assert.equal((await fetch(url + '/ping')).status, 204);
   assert.equal((await fetch(url + '/job', { method: 'POST', body: 'return 1' })).status, 403);
 
   const script = path.join(dir, 's.js');

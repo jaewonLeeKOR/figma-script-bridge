@@ -12,6 +12,7 @@ onmessage = async e => {
   s.textContent = `실행 ${++n}건 · 대기 중`;
 };
 (async function poll() {
+  try { await fetch(S + '/ping'); s.textContent = '연결됨 · 대기 중'; } catch {}
   for (;;) {
     try {
       const res = await fetch(S + '/next');

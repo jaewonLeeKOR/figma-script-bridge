@@ -19,6 +19,7 @@ if (cmd === 'serve') {
   const cors = { 'Access-Control-Allow-Origin': 'null' };
   const body = req => new Promise(r => { let b = ''; req.on('data', c => (b += c)); req.on('end', () => r(b)); });
   http.createServer(async (req, res) => {
+    if (req.url === '/ping') { res.writeHead(204, cors); return res.end(); }
     if (req.url === '/next') {
       const send = job => { res.writeHead(200, { ...cors, 'Content-Type': 'application/json' }); res.end(JSON.stringify(job)); };
       if (jobs.length) return send(jobs.shift());
